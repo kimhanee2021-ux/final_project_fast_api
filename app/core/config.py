@@ -9,6 +9,7 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 
 DEFAULT_RECOMMENDATIONS = 10
 MAX_RECOMMENDATIONS = 50
+DEFAULT_NEW_SLOTS = 3  # 추천 중 신작 칸 수의 기본값 (0 = 신작 칸 없음). 후보 마스크(리뷰 100개 이상)와 함께 쓴다
 
 
 class Settings(BaseSettings):

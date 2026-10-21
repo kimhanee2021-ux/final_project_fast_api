@@ -12,9 +12,11 @@ class FakeRecommender:
     def __init__(self, items: list[Recommendation] | None = None):
         self.items = items if items is not None else []
         self.calls: list[tuple[list[OwnedGame], set[int], int]] = []
+        self.new_slots_calls: list[int] = []
 
-    def recommend(self, history, exclude_app_ids, limit) -> RecommendationResult:
+    def recommend(self, history, exclude_app_ids, limit, new_slots=0) -> RecommendationResult:
         self.calls.append((history, exclude_app_ids, limit))
+        self.new_slots_calls.append(new_slots)
         if not history:
             raise NoKnownGamesError
         return RecommendationResult(

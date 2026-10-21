@@ -12,6 +12,7 @@ class OwnedGame:
 class Recommendation:
     app_id: int
     score: float
+    source: str = "main"  # main = 기본 추천, new = 학습에 없던 게임(신작) 칸
 
 
 @dataclass(frozen=True)
@@ -27,5 +28,5 @@ class NoKnownGamesError(Exception):
 
 class Recommender(Protocol):
     def recommend(
-        self, history: list[OwnedGame], exclude_app_ids: set[int], limit: int
+        self, history: list[OwnedGame], exclude_app_ids: set[int], limit: int, new_slots: int = 0
     ) -> RecommendationResult: ...

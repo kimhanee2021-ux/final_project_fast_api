@@ -62,9 +62,10 @@ def test_returns_recommendations_with_game_info_and_meta(client):
                 "rank": 1,
                 "app_id": 11,
                 "score": 0.9123,
+                "source": "main",
                 "game": {"name": "Game 11", "genre": "RPG", "thumbnail_url": "http://img/11"},
             },
-            {"rank": 2, "app_id": 22, "score": 0.5, "game": None},
+            {"rank": 2, "app_id": 22, "score": 0.5, "source": "main", "game": None},
         ],
         "meta": {"used_game_count": 1, "unplayed_game_count": 1},
     }
@@ -140,3 +141,27 @@ def test_unknown_path_uses_the_same_error_format(client):
 
 def test_health(client):
     assert client.get("/health").json() == {"status": "ok"}
+
+
+def test_new_slots_query_is_passed_to_recommender(library):
+    recommender = FakeRecommender([Recommendation(11, 0.9), Recommendation(22, 0.5)])
+    service = RecommendationService(
+        recommender=recommender,
+        users=FakeUserRepository({USER_ID}),
+        library=library,
+        catalog=FakeGameCatalogRepository([]),
+    )
+    app = create_app(make_test_settings())
+    app.dependency_overrides[get_recommendation_service] = lambda: service
+
+    response = TestClient(app).get(URL + "?limit=5&new_slots=2", headers=bearer())
+
+    assert response.status_code == 200
+    assert recommender.new_slots_calls[-1] == 2
+
+
+def test_new_slots_over_max_is_validation_error(client):
+    response = client.get(URL + "?new_slots=999", headers=bearer())
+
+    assert response.status_code == 400
+    assert response.json()["code"] == "VALIDATION_ERROR"

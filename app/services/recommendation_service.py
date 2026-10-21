@@ -40,7 +40,7 @@ class RecommendationService:
         self._library = library
         self._catalog = catalog
 
-    def recommend_for_user(self, user_id: int, limit: int) -> UserRecommendations:
+    def recommend_for_user(self, user_id: int, limit: int, new_slots: int = 0) -> UserRecommendations:
         if not self._users.exists(user_id):
             raise UserNotFoundError
 
@@ -48,7 +48,7 @@ class RecommendationService:
         played = [g for g in owned if g.playtime_hours > 0]
         owned_ids = {g.app_id for g in owned}  # 미플레이 게임도 이미 가진 게임이므로 추천에서 제외
 
-        result = self._recommender.recommend(played, owned_ids, limit)
+        result = self._recommender.recommend(played, owned_ids, limit, new_slots)
         games = self._catalog.find_by_app_ids([r.app_id for r in result.items])
         items = [
             RecommendedGameDetail(rank, r, games.get(r.app_id))

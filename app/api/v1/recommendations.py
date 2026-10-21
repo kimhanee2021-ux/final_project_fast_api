@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query
 
 from app.api.auth import get_current_user_id
 from app.api.dependencies import get_recommendation_service
-from app.core.config import DEFAULT_RECOMMENDATIONS, MAX_RECOMMENDATIONS
+from app.core.config import DEFAULT_NEW_SLOTS, DEFAULT_RECOMMENDATIONS, MAX_RECOMMENDATIONS
 from app.schemas.recommendation import ErrorResponse, RecommendationResponse
 from app.services.recommendation_service import RecommendationService
 
@@ -21,7 +21,8 @@ router = APIRouter(prefix="/users/me/recommendations", tags=["recommendations"])
 )
 def list_my_recommendations(
     limit: int = Query(DEFAULT_RECOMMENDATIONS, ge=1, le=MAX_RECOMMENDATIONS),
+    new_slots: int = Query(DEFAULT_NEW_SLOTS, ge=0, le=MAX_RECOMMENDATIONS, description="limit 중 신작(학습에 없던 게임) 칸 수"),
     user_id: int = Depends(get_current_user_id),
     service: RecommendationService = Depends(get_recommendation_service),
 ) -> RecommendationResponse:
-    return RecommendationResponse.from_result(service.recommend_for_user(user_id, limit))
+    return RecommendationResponse.from_result(service.recommend_for_user(user_id, limit, new_slots))

@@ -13,6 +13,7 @@ class RecommendedGame(BaseModel):
     rank: int
     app_id: int
     score: float = Field(description="요청 내 순위용 점수 (확률/일치율 아님)")
+    source: str = Field(description="main = 기본 추천, new = 학습에 없던 게임(신작) 칸")
     game: GameOut | None = Field(description="games 카탈로그에 없는 게임이면 null")
 
     @classmethod
@@ -22,6 +23,7 @@ class RecommendedGame(BaseModel):
             rank=detail.rank,
             app_id=detail.recommendation.app_id,
             score=round(detail.recommendation.score, 4),
+            source=detail.recommendation.source,
             game=GameOut(name=game.name, genre=game.genre, thumbnail_url=game.thumbnail_url)
             if game
             else None,
