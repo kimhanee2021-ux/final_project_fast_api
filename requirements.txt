@@ -4,7 +4,3 @@ numpy==2.5.4
 torch==2.14.1
 keras-nightly==3.16.0.dev2026102004
 pydantic-settings==2.16.1
-sqlalchemy==2.1.5
-pymysql==1.2.3
-cryptography==50.0.2
-PyJWT==2.15.1

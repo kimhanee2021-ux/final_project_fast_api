@@ -1,28 +1,22 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 
-from app.api.auth import get_current_user_id
-from app.api.dependencies import get_recommendation_service
-from app.core.config import DEFAULT_NEW_SLOTS, DEFAULT_RECOMMENDATIONS, MAX_RECOMMENDATIONS
-from app.schemas.recommendation import ErrorResponse, RecommendationResponse
-from app.services.recommendation_service import RecommendationService
+from app.api.dependencies import get_recommender
+from app.domain.recommender import Recommender
+from app.schemas.recommendation import ErrorResponse, RecommendRequest, RecommendResponse
 
-router = APIRouter(prefix="/users/me/recommendations", tags=["recommendations"])
+router = APIRouter(prefix="/recommendations", tags=["recommendations"])
 
 
-@router.get(
+@router.post(
     "",
-    response_model=RecommendationResponse,
-    summary="로그인한 사용자의 보유 게임 기반 추천 조회",
+    response_model=RecommendResponse,
+    summary="플레이 이력으로 게임 추천 (내부 API)",
     responses={
-        401: {"model": ErrorResponse, "description": "토큰이 없거나 유효하지 않음 (UNAUTHENTICATED)"},
-        404: {"model": ErrorResponse, "description": "토큰은 유효하나 회원이 없음 (USER_NOT_FOUND)"},
-        409: {"model": ErrorResponse, "description": "추천에 쓸 수 있는 플레이한 게임이 없음 (NO_PLAYED_GAMES)"},
+        422: {"model": ErrorResponse, "description": "모델이 아는 게임이 이력에 없음 (NO_KNOWN_GAMES)"},
     },
 )
-def list_my_recommendations(
-    limit: int = Query(DEFAULT_RECOMMENDATIONS, ge=1, le=MAX_RECOMMENDATIONS),
-    new_slots: int = Query(DEFAULT_NEW_SLOTS, ge=0, le=MAX_RECOMMENDATIONS, description="limit 중 신작(학습에 없던 게임) 칸 수"),
-    user_id: int = Depends(get_current_user_id),
-    service: RecommendationService = Depends(get_recommendation_service),
-) -> RecommendationResponse:
-    return RecommendationResponse.from_result(service.recommend_for_user(user_id, limit, new_slots))
+def recommend(body: RecommendRequest, recommender: Recommender = Depends(get_recommender)) -> RecommendResponse:
+    result = recommender.recommend(
+        [g.to_domain() for g in body.played_games], set(body.exclude_app_ids), body.limit, body.new_slots
+    )
+    return RecommendResponse.from_result(result)

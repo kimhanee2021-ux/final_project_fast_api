@@ -6,8 +6,8 @@ from app.domain.recommender import (
     OwnedGame,
     RecommendationResult,
 )
-from app.infrastructure.game_index import GameIndex
-from app.infrastructure.user_encoder import UserEncoder
+from app.infra.game_index import GameIndex
+from app.infra.user_encoder import UserEncoder
 
 
 class TwoTowerRecommender:

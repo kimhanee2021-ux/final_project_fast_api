@@ -17,7 +17,7 @@ pytestmark = pytest.mark.skipif(
 
 @pytest.fixture(scope="module")
 def recommender():
-    from app.infrastructure.two_tower import TwoTowerRecommender
+    from app.infra.two_tower import TwoTowerRecommender
 
     return TwoTowerRecommender(MODEL_DIR)
 
