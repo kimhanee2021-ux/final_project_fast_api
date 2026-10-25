@@ -4,3 +4,4 @@ numpy==2.5.4
 torch==2.14.1
 keras-nightly==3.16.0.dev2026102004
 pydantic-settings==2.16.1
+transformers==5.20.2

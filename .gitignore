@@ -3,3 +3,4 @@ __pycache__/
 .venv/
 saved_model_twotower/
 .pytest_cache/
+search_model/

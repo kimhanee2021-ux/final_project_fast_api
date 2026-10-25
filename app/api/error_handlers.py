@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.domain.recommender import NoKnownGamesError
+from app.domain.searcher import NoSearchKeywordsError, SearchUnavailableError
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,14 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(NoKnownGamesError)
     async def no_known_games(_: Request, __: NoKnownGamesError):
         return error_response(422, "NO_KNOWN_GAMES", "모델이 아는 플레이한 게임이 없어 추천할 수 없습니다")
+
+    @app.exception_handler(NoSearchKeywordsError)
+    async def no_search_keywords(_: Request, __: NoSearchKeywordsError):
+        return error_response(422, "NO_SEARCH_KEYWORDS", "쓸 수 있는 태그, 설명, 비슷한 게임이 없어 검색할 수 없습니다")
+
+    @app.exception_handler(SearchUnavailableError)
+    async def search_unavailable(_: Request, __: SearchUnavailableError):
+        return error_response(503, "SEARCH_UNAVAILABLE", "검색 모델이 준비되지 않았습니다")
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(_: Request, e: RequestValidationError):

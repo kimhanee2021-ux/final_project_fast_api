@@ -7,11 +7,16 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 
 DEFAULT_RECOMMENDATIONS = 10
 MAX_RECOMMENDATIONS = 50
+DEFAULT_SEARCH_RESULTS = 10
+MAX_SEARCH_RESULTS = 50
+MAX_SEARCH_KEYWORDS = 10  # 검색 요청 한 건에 담을 수 있는 태그 수 (tags, exclude_tags 각각)
 MAX_HISTORY = 5000  # 요청 한 건에 담을 수 있는 플레이 이력/제외 목록의 최대 길이 (비정상적으로 큰 요청 차단)
 
 
 class Settings(BaseSettings):
     model_dir: Path = BASE_DIR / "saved_model_twotower" / "saved_model_twotower"
+    search_dir: Path = BASE_DIR / "search_model"  # 없으면 검색 API만 꺼진 채로 시작한다
+    search_encoder: str = "intfloat/multilingual-e5-base"  # 질의를 벡터로 바꾸는 모델 이름 또는 폴더 경로
 
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="ignore")
 
