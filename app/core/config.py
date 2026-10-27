@@ -14,7 +14,8 @@ MAX_HISTORY = 5000  # 요청 한 건에 담을 수 있는 플레이 이력/제�
 
 
 class Settings(BaseSettings):
-    model_dir: Path = BASE_DIR / "saved_model_twotower" / "saved_model_twotower"
+    # 어텐션 추천 모델 폴더 (user_tower.keras, game_vecs.npy 등)
+    model_dir: Path = BASE_DIR / "saved_model_attention"
     search_dir: Path = BASE_DIR / "search_model"  # 없으면 검색 API만 꺼진 채로 시작한다
     search_encoder: str = "intfloat/multilingual-e5-base"  # 질의를 벡터로 바꾸는 모델 이름 또는 폴더 경로
 

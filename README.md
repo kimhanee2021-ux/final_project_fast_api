@@ -1,6 +1,6 @@
 # Game Recommendation Model API
 
-Two-Tower 모델로 게임을 추천하는 **내부 추론 서버**. Spring 백엔드만 호출하며 외부(프론트)에 노출하지 않는다.
+Two-Tower 모델(유저 타워에 어텐션을 쓴 모델)로 게임을 추천하는 **내부 추론 서버**. Spring 백엔드만 호출하며 외부(프론트)에 노출하지 않는다.
 DB 접근, 인증, 캐싱, 추천 목록 저장은 모두 Spring이 맡고, 이 서버는 받은 플레이 이력으로 순위만 계산한다.
 
 ```
@@ -22,9 +22,9 @@ uvicorn app.main:create_app --factory --port 8000
 conda 없이 쓰려면 `python -m venv .venv` 후 `pip install -r requirements-dev.txt`.
 
 - 문서: http://localhost:8000/docs
-- 모델 파일은 `saved_model_twotower/saved_model_twotower/`에 있어야 한다. 서버 시작 시 한 번 로딩한다.
+- 추천 모델 파일은 기본으로 `saved_model_attention/`에 있어야 한다. 서버 시작 시 한 번 로딩한다.
 - 검색 파일은 `search_model/`에 있어야 한다 (아래 "검색" 참고). 없으면 검색 API만 503이고 추천은 정상 동작한다.
-- 환경변수는 모두 선택이다: `MODEL_DIR`(추천 모델 폴더), `SEARCH_DIR`(검색 파일 폴더), `SEARCH_ENCODER`(질의 인코더). `.env.example` 참고.
+- 환경변수는 모두 선택이다: `MODEL_DIR`(추천 모델 폴더, 기본 `saved_model_attention`), `SEARCH_DIR`(검색 파일 폴더), `SEARCH_ENCODER`(질의 인코더). `.env.example` 참고.
 - 인증이 없으므로 localhost/내부망에서만 열고 Spring만 접근하게 한다.
 
 ## API
@@ -111,11 +111,29 @@ Spring이 사용자의 한국어 검색어를 LLM(Gemini 등)으로 **영어 키
 
 ## 추천 방식
 
-1. 최근 50개(`hist_len`) 게임을 `1 + log(1 + 시간)` 가중치로 유저 타워에 넣어 사용자 벡터를 만든다.
-2. 미리 계산된 게임 벡터(`game_vecs.npy`)와 내적해 상위 N개를 고른다. `exclude_app_ids`와 이력에 쓴 게임은 제외한다.
-3. 신작 칸이 있으면 학습에 없던 게임은 콘텐츠 벡터로 따로 점수를 내어 정해진 칸 수만큼 채운다.
+1. 같은 게임이 여러 번 오면 마지막 것만 쓴다. 최근 50개(`hist_len`) 게임을 `1 + log(1 + 시간)` 가중치로 유저 타워에 넣어 사용자 벡터를 만든다.
+   - 어텐션 모델의 유저 타워는 보유 게임끼리 서로 참고(어텐션)한 뒤 플레이시간 가중합으로 사용자 벡터를 만든다. 게임 ID는 입력으로 쓰지 않는다.
+2. 미리 계산된 게임 벡터(`game_vecs.npy`)와 내적해 상위 N개를 고른다. `exclude_app_ids`와 이력에 쓴 게임은 제외하고, 후보 마스크(`candidate_mask.npy`)가 허용한 게임만 후보가 된다.
+3. 신작 칸이 있으면 학습에 없던 게임(`in_train.npy`가 False인 게임) 중에서 정해진 칸 수만큼 채운다. 어텐션 모델은 신작도 과거작과 같은 게임 벡터로 점수를 낸다.
 
 모델이 모르는 게임은 취향 계산에서 무시된다.
+
+### 모델 파일
+
+`saved_model_attention/` (git에는 올리지 않는다. `.gitignore`)
+
+| 파일 | 내용 |
+|---|---|
+| `user_tower.keras` | 유저 타워 (게임 타워 포함). 보유 게임 → 유저 벡터 |
+| `game_vecs.npy` | 모든 게임(135,649개)의 벡터를 미리 계산한 표 |
+| `entity_app_ids.npy` | `game_vecs`의 j번째 줄이 어느 AppID 게임인지 |
+| `candidate_mask.npy` | **서비스가 쓰는 추천 후보.** 아래 규칙의 교집합 (약 22,070개) |
+| `candidate_mask_exported.npy` | 학습 노트북이 내보낸 원본 마스크 (비게임 프로그램과 이름 중복만 제외, 약 131,615개). 서비스는 쓰지 않고 보관용 |
+| `in_train.npy` | 학습 기록에 있던 게임인가 (False = 신작 등). 신작 칸에 사용 |
+| `meta.json` | 모델 정보 (`hist_len`, 학습 시각, 검증·테스트 점수 등) |
+| `reference_recommendations.json` | 학습 노트북이 계산한 예시 유저의 정답 추천 (서비스는 읽지 않음) |
+
+**후보 마스크 규칙** (`candidate_mask.npy`): 이전 서비스 마스크(이름이 같으면 리뷰 최다 1개만, Demo/Playtest/Test Server/Dedicated Server 제외, **리뷰 100개 미만 제외**)와 어텐션 모델 마스크(게임이 아닌 프로그램 제외)의 **교집합**이다. 리뷰가 거의 없는 게임이 상위에 오르는 것을 막으면서, 이전 마스크가 거르지 못한 Wallpaper Engine 같은 프로그램도 뺀다. 원본 마스크만 쓰고 싶으면 `candidate_mask_exported.npy`를 `candidate_mask.npy`로 바꿔 넣는다.
 
 ## 검색 방식
 

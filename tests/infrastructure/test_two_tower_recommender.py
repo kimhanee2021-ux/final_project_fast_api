@@ -70,15 +70,8 @@ def test_only_last_hist_len_games_are_used(recommender):
     assert len(result.used_app_ids) == recommender.hist_len
 
 
-# ---- 신작 칸 (game_vecs_content.npy, gid_of_row.npy 가 있을 때만) ----
-@pytest.fixture(scope="module")
-def has_new_slots(recommender):
-    return recommender._games.has_new_slots
-
-
-def test_new_slots_fill_requested_count_and_mark_source(recommender, has_new_slots):
-    if not has_new_slots:
-        pytest.skip("신작 칸 파일 없음")
+# ---- 신작 칸 (in_train.npy) ----
+def test_new_slots_fill_requested_count_and_mark_source(recommender):
     result = recommender.recommend(HISTORY, set(), 10, new_slots=3)
 
     sources = [i.source for i in result.items]
@@ -87,9 +80,7 @@ def test_new_slots_fill_requested_count_and_mark_source(recommender, has_new_slo
     assert len({i.app_id for i in result.items}) == 10
 
 
-def test_new_slot_games_are_not_in_training_set_and_main_slots_are(recommender, has_new_slots):
-    if not has_new_slots:
-        pytest.skip("신작 칸 파일 없음")
+def test_new_slot_games_are_not_in_training_set_and_main_slots_are(recommender):
     games = recommender._games
     result = recommender.recommend(HISTORY, set(), 10, new_slots=4)
 
@@ -98,9 +89,7 @@ def test_new_slot_games_are_not_in_training_set_and_main_slots_are(recommender, 
         assert is_new == (item.source == "new")
 
 
-def test_new_slots_never_exceed_limit_and_default_is_unchanged(recommender, has_new_slots):
-    if not has_new_slots:
-        pytest.skip("신작 칸 파일 없음")
+def test_new_slots_never_exceed_limit_and_default_is_unchanged(recommender):
     all_new = recommender.recommend(HISTORY, set(), 5, new_slots=99)
     default = recommender.recommend(HISTORY, set(), 5)
     again = recommender.recommend(HISTORY, set(), 5, new_slots=0)
@@ -110,9 +99,7 @@ def test_new_slots_never_exceed_limit_and_default_is_unchanged(recommender, has_
     assert {i.source for i in default.items} == {"main"}
 
 
-def test_new_slots_respect_excluded_games(recommender, has_new_slots):
-    if not has_new_slots:
-        pytest.skip("신작 칸 파일 없음")
+def test_new_slots_respect_excluded_games(recommender):
     first = recommender.recommend(HISTORY, set(), 10, new_slots=3)
     excluded = {i.app_id for i in first.items if i.source == "new"}
 
